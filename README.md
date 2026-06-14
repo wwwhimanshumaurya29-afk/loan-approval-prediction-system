@@ -2,7 +2,8 @@
 
 ## 🌐 Live Demo
 👉 https://loan-approval-prediction-system-iltnbskd6bfywsopw4fokm.streamlit.app/
-
+## githb repo link:
+👉 https://github.com/wwwhimanshumaurya29-afk/loan-approval-prediction-system
 ---
 ## images
 <img width="1920" height="1080" alt="Screenshot (188)" src="https://github.com/user-attachments/assets/6186c3bd-2492-468a-b020-92aba88d0698" />
