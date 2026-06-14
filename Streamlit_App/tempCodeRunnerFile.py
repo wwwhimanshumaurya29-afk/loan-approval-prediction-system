@@ -1,0 +1,1 @@
+streamlit run "c:\Users\HP\OneDrive\Desktop\.LoanApproval_Project\app.py"
