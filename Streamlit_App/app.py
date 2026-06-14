@@ -1,35 +1,30 @@
-# =============================================
-# STREAMLIT APP — LOAN APPROVAL PREDICTOR
-# =============================================
-
 import streamlit as st
 import pandas as pd
 import numpy as np
-import pickle
+import os
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import MinMaxScaler, LabelEncoder
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from imblearn.over_sampling import SMOTE
 from sklearn.model_selection import train_test_split
-import os
 
-os.chdir(r'C:\Users\HP\OneDrive\Desktop\.vscode\PYTHON')
+# ✅ Dynamic path — works on ALL computers and Streamlit Cloud
+BASE_DIR  = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(BASE_DIR, '..', 'Dataset', 'loan_data.csv')
 
-# --- PAGE SETUP ---
+# PAGE SETUP
 st.set_page_config(
     page_title="Loan Approval Predictor",
     page_icon="🏦",
     layout="centered"
 )
 
-# --- TITLE ---
 st.title("🏦 Loan Approval Prediction System")
 st.markdown("### Fill in your details to check loan eligibility")
 st.divider()
 
-# --- TRAIN MODEL FUNCTION ---
 @st.cache_resource
 def train_model():
-    df = pd.read_csv('loan_data.csv')
+    df = pd.read_csv(DATA_PATH)
 
     # Clean
     df['Gender']           = df['Gender'].fillna(df['Gender'].mode()[0])
@@ -44,7 +39,8 @@ def train_model():
 
     # Outlier treatment
     def treat_outliers(df, col):
-        Q1, Q3 = df[col].quantile(0.25), df[col].quantile(0.75)
+        Q1  = df[col].quantile(0.25)
+        Q3  = df[col].quantile(0.75)
         IQR = Q3 - Q1
         df[col] = df[col].clip(Q1 - 1.5*IQR, Q3 + 1.5*IQR)
         return df
@@ -53,13 +49,13 @@ def train_model():
         df = treat_outliers(df, col)
 
     # Normalize
-    scaler = MinMaxScaler()
+    scaler   = MinMaxScaler()
     num_cols = ['ApplicantIncome', 'CoapplicantIncome',
                 'LoanAmount', 'Loan_Amount_Term']
     df[num_cols] = scaler.fit_transform(df[num_cols])
 
     # Encode
-    le = LabelEncoder()
+    le       = LabelEncoder()
     cat_cols = ['Gender', 'Married', 'Dependents',
                 'Education', 'Self_Employed',
                 'Property_Area', 'Loan_Status']
@@ -82,14 +78,12 @@ def train_model():
     # Train
     model = RandomForestClassifier(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
+    return model
 
-    return model, scaler
+model = train_model()
 
-model, scaler = train_model()
-
-# --- INPUT FORM ---
+# INPUT FORM
 st.subheader("📝 Applicant Information")
-
 col1, col2 = st.columns(2)
 
 with col1:
@@ -98,24 +92,24 @@ with col1:
     dependents    = st.selectbox("Dependents", ["0", "1", "2", "3+"])
     education     = st.selectbox("Education", ["Graduate", "Not Graduate"])
     self_employed = st.selectbox("Self Employed", ["No", "Yes"])
-    property_area = st.selectbox("Property Area", 
+    property_area = st.selectbox("Property Area",
                                   ["Urban", "Semiurban", "Rural"])
 
 with col2:
-    applicant_income   = st.number_input("Applicant Monthly Income (₹)", 
+    applicant_income   = st.number_input("Applicant Monthly Income (₹)",
                                           min_value=0, value=5000, step=500)
-    coapplicant_income = st.number_input("Co-applicant Monthly Income (₹)", 
+    coapplicant_income = st.number_input("Co-applicant Monthly Income (₹)",
                                           min_value=0, value=0, step=500)
-    loan_amount        = st.number_input("Loan Amount (in thousands ₹)", 
+    loan_amount        = st.number_input("Loan Amount (in thousands ₹)",
                                           min_value=0, value=150, step=10)
-    loan_term          = st.selectbox("Loan Term (months)", 
+    loan_term          = st.selectbox("Loan Term (months)",
                                        [360, 120, 180, 240, 300, 480, 60, 36, 12])
-    credit_history     = st.selectbox("Credit History", 
+    credit_history     = st.selectbox("Credit History",
                                        ["Good (1.0)", "Bad (0.0)"])
 
 st.divider()
 
-# --- PREDICT BUTTON ---
+# PREDICT BUTTON
 if st.button("🔍 Check Loan Eligibility", use_container_width=True):
 
     # Process inputs
@@ -127,16 +121,10 @@ if st.button("🔍 Check Loan Eligibility", use_container_width=True):
     property_val      = {"Urban":2, "Semiurban":1, "Rural":0}[property_area]
     credit_val        = 1.0 if "Good" in credit_history else 0.0
 
-    # Normalize numerical inputs using same scaler logic
-    # Cap outliers first
-    app_inc  = min(applicant_income, 10171)
-    coapp_inc = min(coapplicant_income, 5743)
-    loan_amt = min(loan_amount, 262)
-
-    # Normalize manually (0-1 scale based on training data)
-    app_inc_norm  = app_inc / 10171
-    coapp_inc_norm = coapp_inc / 5743
-    loan_amt_norm = loan_amt / 262
+    # Normalize
+    app_inc_norm   = min(applicant_income, 10171)   / 10171
+    coapp_inc_norm = min(coapplicant_income, 5743)  / 5743
+    loan_amt_norm  = min(loan_amount, 262)           / 262
     loan_term_norm = (loan_term - 12) / (480 - 12)
 
     # Feature Engineering
@@ -144,7 +132,7 @@ if st.button("🔍 Check Loan Eligibility", use_container_width=True):
     income_loan_ratio = total_income / (loan_amt_norm + 0.0001)
     emi               = loan_amt_norm / (loan_term_norm + 0.0001)
 
-    # Create input array
+    # Input dataframe
     input_data = pd.DataFrame([[
         gender_val, married_val, dependents_val, education_val,
         self_employed_val, app_inc_norm, coapp_inc_norm,
@@ -158,13 +146,13 @@ if st.button("🔍 Check Loan Eligibility", use_container_width=True):
     ])
 
     # Predict
-    prediction    = model.predict(input_data)[0]
-    probability   = model.predict_proba(input_data)[0]
-    confidence    = max(probability) * 100
+    prediction  = model.predict(input_data)[0]
+    probability = model.predict_proba(input_data)[0]
+    confidence  = max(probability) * 100
 
     st.divider()
 
-    # --- SHOW RESULT ---
+    # Show Result
     if prediction == 1:
         st.success("# ✅ LOAN APPROVED!")
         st.balloons()
@@ -175,21 +163,18 @@ if st.button("🔍 Check Loan Eligibility", use_container_width=True):
         st.markdown(f"### Confidence: {confidence:.1f}%")
         st.markdown("**Your application does not meet the approval criteria.**")
 
-    # Show probability bar
+    # Probability Display
     st.divider()
     st.subheader("📊 Prediction Probability")
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("✅ Approval Probability", 
+        st.metric("✅ Approval Probability",
                   f"{probability[1]*100:.1f}%")
     with col2:
-        st.metric("❌ Rejection Probability", 
+        st.metric("❌ Rejection Probability",
                   f"{probability[0]*100:.1f}%")
-
     st.progress(float(probability[1]))
 
-# --- FOOTER ---
+# Footer
 st.divider()
 st.markdown("*Loan Approval Prediction System — ML Project*")
-
-#to run this entire code type command in terminal:   streamlit run "c:\Users\HP\OneDrive\Desktop\LoanApproval_Project\Streamlit_App\app.py"
