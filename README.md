@@ -1,5 +1,15 @@
 # 🏦 Loan Approval Prediction System
 
+## 🌐 Live Demo
+👉 https://loan-approval-prediction-system-iltnbskd6bfywsopw4fokm.streamlit.app/
+
+---
+## images
+<img width="1920" height="1080" alt="Screenshot (188)" src="https://github.com/user-attachments/assets/6186c3bd-2492-468a-b020-92aba88d0698" />
+<img width="1920" height="1080" alt="Screenshot (189)" src="https://github.com/user-attachments/assets/182122b2-25ee-490e-9e0b-7fbfe7b7347c" />
+
+
+
 ## 📌 Project Overview
 A Machine Learning system that predicts whether a loan
 application will be approved or rejected based on
